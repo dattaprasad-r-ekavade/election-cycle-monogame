@@ -1,0 +1,41 @@
+{
+  "name": "YOUR HOUSE",
+  "outdoor": false,
+  "rows": [
+    "############",
+    "#b__v____B_#",
+    "#__________#",
+    "#__________#",
+    "#___ac_____#",
+    "#____rr____#",
+    "#____rr____#",
+    "#__________#",
+    "#_____m____#",
+    "############"
+  ],
+  "spawn": { "x": 6, "y": 5, "facing": "down" },
+  "warps": [
+    { "x": 6, "y": 8, "toMap": "town", "toX": 5, "toY": 5, "facing": "down" }
+  ],
+  "npcs": [
+    {
+      "name": "MOM",
+      "sprite": "mom",
+      "x": 3,
+      "y": 3,
+      "facing": "down",
+      "wander": true,
+      "dialogue": [
+        "Oh, good morning sweetheart! You're up early for once.",
+        "ELDER ROWAN was asking about you. You should say hello - he's out by the town sign.",
+        "And don't wander into the tall grass without a jacket. It gets chilly!"
+      ]
+    }
+  ],
+  "interactables": [
+    { "x": 1, "y": 1, "lines": [ "You flop onto the bed for a moment... You feel refreshed!" ] },
+    { "x": 4, "y": 1, "lines": [ "There's a nature documentary on TV. Wild creatures roam in distant regions!" ] },
+    { "x": 9, "y": 1, "lines": [ "Shelves packed with adventure novels. You've read them all twice." ] },
+    { "x": 4, "y": 4, "lines": [ "Breakfast is still warm on the table." ] }
+  ]
+}
