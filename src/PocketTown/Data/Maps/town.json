@@ -1,0 +1,89 @@
+{
+  "name": "MAPLE TOWN",
+  "outdoor": true,
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+    "T..........................T",
+    "T..RRRRR........RRRRR......T",
+    "T..RRRRR........RRRRR......T",
+    "T..WoDoW........WodoW......T",
+    "T....p............p........T",
+    "T.f..p.....s......p..ttt...T",
+    "T.ff.p............p..ttt...T",
+    "T....pppppppppppppp..ttt...T",
+    "T........p...........tt....T",
+    "T........p.................T",
+    "T..www...p.......FFFFFF....T",
+    "T.wwwww..p.......f.f.f.....T",
+    "T.wwwww..p.......f.f.f.....T",
+    "T..www...p.......FFFFFF....T",
+    "T........p.................T",
+    "T........p.................T",
+    "T.......................t..T",
+    "T..........................T",
+    "TTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+  ],
+  "spawn": { "x": 10, "y": 10, "facing": "down" },
+  "warps": [
+    { "x": 5, "y": 4, "toMap": "home", "toX": 6, "toY": 8, "facing": "up" }
+  ],
+  "npcs": [
+    {
+      "name": "ELDER ROWAN",
+      "sprite": "elder",
+      "x": 16,
+      "y": 6,
+      "facing": "down",
+      "wander": false,
+      "dialogue": [
+        "Ah, there you are! The morning air does an old man good.",
+        "This town has been peaceful for generations. No wild creatures, no battles... just good neighbors.",
+        "If you ever leave for the big city, remember: talk to everyone. You never know what you'll learn."
+      ]
+    },
+    {
+      "name": "MARNIE",
+      "sprite": "girl",
+      "x": 18,
+      "y": 12,
+      "facing": "down",
+      "wander": true,
+      "dialogue": [
+        "I planted every flower in this garden myself!",
+        "The red ones bloom all summer. Aren't they lovely?"
+      ]
+    },
+    {
+      "name": "FINN",
+      "sprite": "boy",
+      "x": 22,
+      "y": 9,
+      "facing": "left",
+      "wander": true,
+      "dialogue": [
+        "Shh! I'm hiding in the tall grass.",
+        "Sometimes it rustles even when nobody's in it... spooky, right?"
+      ]
+    }
+  ],
+  "interactables": [
+    {
+      "x": 11,
+      "y": 6,
+      "lines": [
+        "MAPLE TOWN",
+        "A quiet town where the maple leaves fall slow."
+      ]
+    },
+    {
+      "x": 18,
+      "y": 4,
+      "lines": [ "It's locked. This must be ELDER ROWAN's house." ]
+    },
+    {
+      "x": 4,
+      "y": 14,
+      "lines": [ "The pond is calm. A leaf drifts across the surface." ]
+    }
+  ]
+}
