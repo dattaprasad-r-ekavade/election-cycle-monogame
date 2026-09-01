@@ -10,28 +10,26 @@ public enum DayPhase
 
 public enum CampaignDay
 {
-    Registration = 1,
+    Broadcast = 1,
     Canvassing = 2,
-    PublicAddress = 3,
-    Interview = 4,
+    Interview = 3,
+    PublicAddress = 4,
     Debate = 5,
-    Voting = 6,
-    Results = 7,
+    Results = 6,
 }
 
 public static class CampaignCalendar
 {
-    public const int DayCount = 7;
+    public const int DayCount = 6;
 
     public static string Name(int day) => day switch
     {
-        1 => "REGISTRATION",
+        1 => "ON THE AIR",
         2 => "CANVASSING",
-        3 => "PUBLIC ADDRESS",
-        4 => "MEDIA INTERVIEW",
+        3 => "MEDIA INTERVIEW",
+        4 => "PUBLIC ADDRESS",
         5 => "DEBATE",
-        6 => "VOTING DAY",
-        7 => "RESULTS",
+        6 => "RESULTS",
         _ => "CAMPAIGN",
     };
 
@@ -39,11 +37,10 @@ public static class CampaignCalendar
     {
         1 => "FILE PAPERS",
         2 => "KNOCK DOORS",
-        3 => "GIVE A SPEECH",
-        4 => "FACE THE CAMERAS",
+        3 => "FACE THE CAMERAS",
+        4 => "GIVE A SPEECH",
         5 => "DEBATE THE OPPONENT",
-        6 => "WATCH THE POLLS",
-        7 => "HEAR THE COUNT",
+        6 => "HEAR THE COUNT",
         _ => "CAMPAIGN",
     };
 }

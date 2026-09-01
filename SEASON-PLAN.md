@@ -106,8 +106,8 @@ Episodes 7–9 stay blank until 1–6 are written. Do not pre-build maps for unw
 
 ## 6. Build order (S01)
 
-1. Retune the existing 7-day stub to this beat sheet: **TV → register → canvass → interview → speech → debate → results.** Add a 3rd-party bloc that can steal the count.
-2. **Level 1 / Episode 1** playable end-to-end (Hometown, Quince, kiosk, underdog win). Ugly art is on-brand for local news.
+1. ~~Retune the stub to this beat sheet + 3rd-party count.~~ **Done in engine:** 6-day week, WMAP-7 cold open, three-way shares, Vending Union usually wins.
+2. **Level 1 / Episode 1** — deepen the porches / interview bite / speech gag / debate (still Hometown, Quince, kiosk). Ugly art is on-brand.
 3. In-engine “director kit”: hide HUD, camera poses, play a line, export. Enough to shoot a cold open.
 4. Record Episode 1. Put the itch build in the description the same week.
 5. Repeat: write episode N → playable level N → shoot N. Cadence over a dump of ten.

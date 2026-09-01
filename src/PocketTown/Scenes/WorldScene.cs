@@ -117,6 +117,7 @@ public class WorldScene : Scene
                 {
                     _fadeProgress = 0f;
                     _fade = FadeState.None;
+                    MaybeStartColdOpen();
                 }
                 UpdateCamera();
                 return;
@@ -138,16 +139,24 @@ public class WorldScene : Scene
         if (_news.IsOpen)
         {
             _news.Update(dt);
-            if (InputManager.Pressed(GameAction.Confirm) || InputManager.Pressed(GameAction.Cancel))
-            {
-                AudioBank.Play(AudioBank.Confirm);
-                _fade = FadeState.FadeOutToSleep;
-                _fadeProgress = 0f;
-            }
             if (InputManager.Pressed(GameAction.Menu))
             {
                 Game.Scenes.Change(new TitleScene(Game));
                 return;
+            }
+            if (InputManager.Pressed(GameAction.Confirm) || InputManager.Pressed(GameAction.Cancel))
+            {
+                AudioBank.Play(AudioBank.Confirm);
+                if (_news.CurrentMode == NewsReport.Mode.ColdOpen)
+                {
+                    _news.Close();
+                    StartTodaysEvent();
+                }
+                else
+                {
+                    _fade = FadeState.FadeOutToSleep;
+                    _fadeProgress = 0f;
+                }
             }
             return;
         }
@@ -192,6 +201,16 @@ public class WorldScene : Scene
             OpenNews();
 
         UpdateCamera();
+    }
+
+    private void MaybeStartColdOpen()
+    {
+        if (_run.Day == 1 && !_run.SawColdOpen && !_run.Log.Any(e => e.Day == 1))
+        {
+            _run.SawColdOpen = true;
+            _news.ShowColdOpen(_run);
+            AudioBank.Play(AudioBank.Warp);
+        }
     }
 
     private void StartTodaysEvent()

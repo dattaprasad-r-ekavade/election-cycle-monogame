@@ -2,7 +2,7 @@
 
 **Election Cycle** — a South Park season you can play. Each episode is a level. Built with [MonoGame](https://monogame.net/) (DesktopGL).
 
-Season 1 is 10 short satire episodes (YouTube) that are also 10 playable campaign weeks (itch.io, donation / PWYW). Same stations every time: TV cold open, register, canvass, interview, speech, debate, then a 3rd-party underdog wins. The engine still ships a walkable town plus a 7-day stub (poll, WMAP-7 news, save). See `SEASON-PLAN.md`.
+Season 1 is 10 short satire episodes (YouTube) that are also 10 playable campaign weeks (itch.io, donation / PWYW). Same stations every time: TV cold open, register, canvass, interview, speech, debate, then a 3rd-party underdog wins. See `SEASON-PLAN.md`.
 
 Everything (sprites, tiles, font, sound effects) is **generated procedurally at startup**, so the project builds and runs with zero asset files and no MonoGame content pipeline. Swap in real art later by editing one file.
 
@@ -40,7 +40,7 @@ dotnet publish src/PocketTown -c Release -r win-x64 --self-contained
 - **Dialogue** — typewriter reveal, word wrapping, multiple pages, speaker name tags, blinking continue arrow.
 - **Warps** — step on a door / door mat to fade out, switch maps, and fade back in.
 - **Interactables** — face a sign, bed, TV, bookshelf... and press Z to read flavor text.
-- **7-day campaign stub** — HUD shows day and poll. Press **X** in the morning to play that day's placeholder event, then the **WMAP-7** news report (poll moves, headlines, tomorrow's modifier). Sleep auto-saves to `%APPDATA%\ElectionCycle\save.json`. Title screen: **Z** new campaign, **X** continue.
+- **Episode 1 week** — 6 days: WMAP-7 cold open (election called) → file papers → canvass → interview → speech → debate → results. Three-way poll (you / Quince / Vending Union). The underdog usually eats the count. Press **X** in the morning for that day's scene. Sleep auto-saves to `%APPDATA%\ElectionCycle\save.json`. Title: **Z** new campaign, **X** continue.
 
 ## Project layout
 

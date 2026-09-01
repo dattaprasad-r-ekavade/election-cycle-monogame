@@ -1,8 +1,8 @@
 namespace PocketTown.Sim;
 
 /// <summary>
-/// Phase machine for one campaign run. Placeholder events live here until each day
-/// gets its own scene; they still write real poll deltas and headlines so the news TV works.
+/// Episode 1 week: TV → register → canvass → interview → speech → debate → results.
+/// The vending union climbs in the background and usually eats the count.
 /// </summary>
 public static class DayManager
 {
@@ -11,27 +11,25 @@ public static class DayManager
     public static EventScript BeginTodaysEvent(RunState run)
     {
         run.Phase = DayPhase.Event;
-        float before = run.Poll;
-        var (playerSwing, opponentLine, headlines, lines) = StubFor(run.Day);
-        PollModel.ApplySwing(run.Blocs, playerSwing);
-        // Incumbent bleeds a little every day just by existing — doing nothing still loses slowly.
-        PollModel.ApplySwing(run.Blocs, -1.2f, favoredBloc: "OLD GUARD");
+        float before = run.PlayerShare;
+        var beat = BeatFor(run.Day);
+        run.ApplyShares(beat.PlayerDelta, beat.OpponentDelta, beat.ThirdDelta);
+        PollModel.ApplySwing(run.Blocs, beat.PlayerDelta * 0.6f);
 
-        float after = run.Poll;
-        run.LastOpponentAction = opponentLine;
-        run.TomorrowModifier = ModifierFor(run.Day);
+        run.LastOpponentAction = beat.OpponentLine;
+        run.TomorrowModifier = beat.Modifier;
         run.Log.Add(new CampaignEvent
         {
             Day = run.Day,
             Kind = CampaignCalendar.Name(run.Day),
-            Text = lines[0],
+            Text = beat.Lines[0],
             PollBefore = before,
-            PollAfter = after,
+            PollAfter = run.PlayerShare,
         });
-        foreach (var h in headlines)
+        foreach (var h in beat.Headlines)
             run.Headlines.Add(new Headline { Day = run.Day, Text = h });
         run.RecordPoll("event");
-        return new EventScript("DAY " + run.Day, lines);
+        return new EventScript(beat.Speaker, beat.Lines);
     }
 
     public static void BeginNews(RunState run)
@@ -40,14 +38,13 @@ public static class DayManager
         run.RecordPoll("news");
     }
 
-    /// <summary>End the day: save happens in the scene. Increments the calendar or marks the run finished.</summary>
     public static void Sleep(RunState run)
     {
         run.Phase = DayPhase.Sleep;
         if (run.Day >= CampaignCalendar.DayCount)
         {
             run.Finished = true;
-            run.Won = run.Poll >= 50f;
+            run.Won = run.Leader == run.PlayerName;
             run.RecordPoll("final");
             return;
         }
@@ -57,110 +54,117 @@ public static class DayManager
         run.RecordPoll("morning");
     }
 
-    private static (float swing, string opponent, string[] headlines, string[] lines) StubFor(int day) => day switch
+    private readonly record struct Beat(
+        string Speaker,
+        float PlayerDelta,
+        float OpponentDelta,
+        float ThirdDelta,
+        string OpponentLine,
+        string Modifier,
+        string[] Headlines,
+        string[] Lines);
+
+    private static Beat BeatFor(int day) => day switch
     {
-        1 => (
-            6f,
-            "QUINCE FILED HIS PAPERS, THEN ASKED WHERE HE WAS.",
+        1 => new(
+            "TOWN HALL",
+            4f, -3f, 3f,
+            "QUINCE FILED, THEN ASKED IF THE FORM WAS A WARRANTY.",
+            "TOMORROW: PORCHES. BRING SHOES. MAYBE A TREAT FOR DOGS.",
             new[]
             {
-                "DARK HORSE FILES FOR MAYOR, POLLS IN THE TEENS",
-                "INCUMBENT QUINCE: 'I HAVE ALWAYS BEEN RUNNING. I THINK.'",
+                "CHALLENGER FILES FOR MAYOR AFTER WATCHING IT ON TV",
+                "VENDING UNION ALSO FILES. CLERK: 'THEY HAD THE FEE IN QUARTERS.'",
             },
             new[]
             {
-                "TOWN HALL. The clerk slides you a candidacy form the size of a picnic blanket.",
-                "You write your name. Somewhere in the lobby, HAROLD QUINCE files his own papers and forgets why he came.",
-                "You are on the ballot. The first poll has you in the teens. Mom is already calling you Mayor.",
+                "The clerk does not look up. The form is the size of a picnic blanket.",
+                "You write: a clerk that never sleeps. A kiosk at Town Hall. Open at 2am. No line.",
+                "In the lobby HAROLD QUINCE is arguing with a vending machine that has its own clipboard.",
+                "You are on the ballot. So is the machine. Mom is already calling you Mayor.",
             }),
-        2 => (
-            8f,
-            "QUINCE CANVASSED ONE PORCH, THEN NAPPED IN THE ROCKING CHAIR.",
+        2 => new(
+            "PORCHES",
+            6f, -4f, 5f,
+            "QUINCE CANVASSED ONE PORCH AND NAPPED IN THE CHAIR.",
+            "TOMORROW: THE ANCHOR HAS TEETH. BRING A SENTENCE.",
             new[]
             {
-                "CHALLENGER KNOCKS, TOWN NOTICES",
-                "RIVERSIDE SAYS NOBODY ASKED THEM ANYTHING LAST CYCLE",
+                "CHALLENGER KNOCKS. TOWN NOTICES. DOGS ALSO NOTICE.",
+                "THREE HOUSEHOLDS ENDORSE 'WHATEVER IS IN THE SNACK SLOT.'",
             },
             new[]
             {
-                "You spend the day on porches. Some doors open. Some dogs vote with their teeth.",
-                "A shopkeeper admits she has never met the incumbent. That is not an endorsement. It is a start.",
+                "Door one: a mill family. They hear 'kiosk' and hear 'the mill again, but smaller.'",
+                "Door two: a shopkeeper who wants Town Hall open after softball. She almost likes you.",
+                "Door three: nobody home. A vending machine on the porch has a campaign sticker. It beeps.",
+                "You promise nothing. You still feel like you promised something.",
             }),
-        3 => (
-            5f,
-            "QUINCE'S RALLY WAS ATTENDED BY THREE PIGEONS AND A COUSIN.",
+        3 => new(
+            "WMAP-7",
+            2f, -1f, 6f,
+            "QUINCE'S INTERVIEW WAS HIM ASKING FOR THE QUESTION AGAIN.",
+            "TOMORROW: A MICROPHONE AND A SQUARE. DO NOT TRIP ON PURPOSE.",
             new[]
             {
-                "CANDIDATE ADDRESSES TOWN SQUARE, MOSTLY IN THE CORRECT ORDER",
-                "HECKLER SHOUTS ABOUT POTHHOLES, GETS A ROUND OF APPLAUSE",
+                "LIVE: CANDIDATE CALLS THE KIOSK 'A VERY POLITE ROBOT UNCLE'",
+                "CLIP ALREADY HAS A SOUND. THE SOUND IS NOT A GOOD SOUND.",
             },
             new[]
             {
-                "Town square. A wobbly mic. You promise to look at the potholes like they personally offended you.",
-                "It is not a great speech. It is louder than silence, which is the local bar for oratory.",
+                "The studio is smaller than on TV. The anchor smiles with too many teeth.",
+                "'So the talking clerk replaces people?' You say it is more of a polite robot uncle.",
+                "You try to walk it back. You say uncle in a larger sense. The red light stays on.",
+                "In the green room a vending machine is giving a better interview than you.",
             }),
-        4 => (
-            3f,
-            "QUINCE'S INTERVIEW WAS MOSTLY HIM ASKING THE ANCHOR FOR THE QUESTION AGAIN.",
+        4 => new(
+            "TOWN SQUARE",
+            5f, -3f, 4f,
+            "QUINCE'S RALLY: THREE PIGEONS AND A COUSIN.",
+            "TOMORROW: PODIUMS. QUINCE FOUND GLASSES. THIS CHANGES NOTHING.",
             new[]
             {
-                "LIVE ON WMAP-7: CANDIDATE SURVIVES THE LIGHTS",
-                "ANCHOR: 'HOW WILL YOU PAY FOR THAT?' CANDIDATE: 'NEXT QUESTION.'",
+                "SPEECH INTERRUPTED BY A MACHINE THAT WANTS EQUAL TIME",
+                "CROWD SPLITS: KIOSK / MILL / WHATEVER HAS CHIPS",
             },
             new[]
             {
-                "The studio is smaller than it looks on TV. The anchor smiles with too many teeth.",
-                "You dodge one trap, eat another, and walk out with a clip they will replay all week.",
+                "A wobbly mic. You talk about a clerk that never sleeps. Someone yells about the mill.",
+                "A vending machine rolls onstage and requests equal time. The crowd is not against this.",
+                "You finish. It is louder than silence. Locally that is oratory.",
             }),
-        5 => (
-            9f,
-            "QUINCE BROUGHT NOTES TO THE DEBATE. THEY WERE A GROCERY LIST.",
+        5 => new(
+            "DEBATE HALL",
+            6f, -5f, 6f,
+            "QUINCE BROUGHT NOTES. THEY WERE A GROCERY LIST.",
+            "TOMORROW: THE MACHINES ARE WARM. BRING A CASSEROLE AND A SPEECH.",
             new[]
             {
-                "DEBATE NIGHT: CHALLENGER LANDS A LINE, ROOM ACTUALLY LAUGHS",
+                "DEBATE: THREE PODIUMS. ONE OF THEM HUMS.",
                 "QUINCE CALLS YOU 'THE OTHER FELLOW' FOR FORTY MINUTES",
             },
             new[]
             {
-                "Podiums. A moderator who has given up. QUINCE reads a grocery list into the mic.",
-                "You land one line the room laughs at. For a second the Sway meter is yours.",
+                "Three podiums. The third one hums. The moderator has given up.",
+                "QUINCE reads a grocery list. You land one line about 2am permits. The room laughs.",
+                "The vending machine declines to take a side. It offers the moderator a soda. Applause.",
             }),
-        6 => (
-            2f,
-            "QUINCE VOTED, THEN ASKED IF HE HAD VOTED.",
+        _ => new(
+            "THE COUNT",
+            1f, -3f, 14f,
+            "QUINCE BROUGHT A CONCESSION AND A VICTORY SPEECH IN ONE ENVELOPE.",
+            "THE BROADCAST IS SIGNING OFF. GO HOME.",
             new[]
             {
-                "CAMPAIGNING BANNED NEAR POLLS, TENSION IS THE WHOLE JOB NOW",
-                "WEATHER: FINE. TURNOUT: ANYONE'S GUESS. DOG: STILL FOLLOWING YOU.",
+                "THE COUNT IS IN. THE SNACKS ARE IN.",
+                "MAPLE TOWN ELECTS A VENDING UNION. HUMANS CONCEDE.",
             },
             new[]
             {
-                "No more knocking. No more speeches. You walk the town and people look at you like a weather report.",
-                "A dog you befriended on Tuesday follows you to the diner. That might be the whole strategy.",
+                "Town Hall. Everyone you met is here. The machines hum like nervous bees.",
+                "Your number is fine. QUINCE's number is fine. The third column keeps growing.",
+                "Someone's dog barks. A coil drops. The clerk reads the winner like a warranty.",
+                "You did not win. QUINCE did not win. The underdog did. Freeze frame.",
             }),
-        _ => (
-            0f,
-            "QUINCE BROUGHT A CONCESSION SPEECH AND A VICTORY SPEECH IN THE SAME ENVELOPE.",
-            new[]
-            {
-                "THE COUNT IS IN — SORT OF",
-                "TOWN HOLDS ITS BREATH, ALSO ITS CASSEROLES",
-            },
-            new[]
-            {
-                "Town Hall. Everyone you met this week is in the room. The machines hum like nervous bees.",
-                "Bloc by bloc, the numbers come in. This is the part where you cannot knock on any more doors.",
-            }),
-    };
-
-    private static string ModifierFor(int today) => today switch
-    {
-        1 => "TOMORROW: A STIFF BREEZE. FLYERS WILL GO WHERE THEY WANT.",
-        2 => "TOMORROW: HEAT WAVE. SHORTER TEMPERS ON THE SQUARE.",
-        3 => "TOMORROW: THE ANCHOR IS IN A MOOD. BRING NOTES.",
-        4 => "TOMORROW: QUINCE FOUND HIS DEBATE GLASSES. THIS CHANGES NOTHING.",
-        5 => "TOMORROW: CAMPAIGNING NEAR THE POLLS IS ILLEGAL. WALK SOFTLY.",
-        6 => "TOMORROW: THE MACHINES ARE WARM. BRING YOUR CASSEROLE AND YOUR SPEECH.",
-        _ => "THE BROADCAST SIGNING OFF. GO HOME.",
     };
 }

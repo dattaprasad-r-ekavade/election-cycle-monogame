@@ -12,7 +12,7 @@ public static class CampaignHud
     {
         string day = "DAY " + run.Day + "/" + CampaignCalendar.DayCount;
         string name = CampaignCalendar.Name(run.Day);
-        string poll = "POLL " + run.Poll.ToString("0") + "%";
+        string poll = "YOU " + run.PlayerShare.ToString("0") + "%";
 
         DrawChip(sb, font, 6, 6, day, new Color(28, 36, 72));
         int x = 6 + font.MeasureWidth(day) + 20;
