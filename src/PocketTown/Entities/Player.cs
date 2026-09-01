@@ -26,13 +26,19 @@ public class Player : Entity
 
     public override void Update(float dt)
     {
-        Speed = InputManager.Down(GameAction.Run) ? Constants.RunSpeed : Constants.WalkSpeed;
-
         _turnTimer -= dt;
         _sinceLastStep += dt;
         _bumpCooldown -= dt;
 
-        if (!IsMoving && InputManager.HeldDirection() is Direction dir)
+        // Finish the current step first so a new one can start in the same frame (no 1-tile hitch).
+        base.Update(dt);
+
+        if (IsMoving)
+            return;
+
+        Speed = InputManager.Down(GameAction.Run) ? Constants.RunSpeed : Constants.WalkSpeed;
+
+        if (InputManager.HeldDirection() is Direction dir)
         {
             // Tapping a new direction first turns in place; walking begins if it stays held.
             // While already walking (fluid), direction changes apply immediately.
@@ -54,8 +60,6 @@ public class Player : Entity
                 }
             }
         }
-
-        base.Update(dt);
     }
 
     protected override void OnArrived()

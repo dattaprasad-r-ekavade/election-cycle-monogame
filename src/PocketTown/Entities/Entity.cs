@@ -106,7 +106,7 @@ public abstract class Entity
         var src = new Rectangle(frame * Art.CharWidth, row * Art.CharHeight, Art.CharWidth, Art.CharHeight);
 
         // The 16x24 sprite's feet sit on the bottom of the occupied tile.
-        var drawPos = new Vector2(MathF.Round(Position.X), MathF.Round(Position.Y) - (Art.CharHeight - Constants.TileSize));
+        var drawPos = new Vector2(Position.X, Position.Y - (Art.CharHeight - Constants.TileSize));
         float feetY = Position.Y + Constants.TileSize;
         sb.Draw(sheet, drawPos, src, Color.White, 0f, Vector2.Zero, 1f, effects, map.DepthFor(feetY));
     }

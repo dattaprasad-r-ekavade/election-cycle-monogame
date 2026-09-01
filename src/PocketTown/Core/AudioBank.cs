@@ -28,11 +28,25 @@ public static class AudioBank
             Warp = Synth(0.25, t => 700 - 500 * (t / 0.25), 0.15);
             _enabled = true;
         }
-        catch (Exception)
+        catch (NoAudioHardwareException)
         {
-            // No audio device (or audio init failed) - run silently.
             _enabled = false;
         }
+        catch (InvalidOperationException)
+        {
+            // OpenAL / device init failed on this machine.
+            _enabled = false;
+        }
+    }
+
+    public static void Dispose()
+    {
+        TextBlip?.Dispose();
+        Confirm?.Dispose();
+        Bump?.Dispose();
+        Warp?.Dispose();
+        TextBlip = Confirm = Bump = Warp = null;
+        _enabled = false;
     }
 
     public static void Play(SoundEffect? effect)

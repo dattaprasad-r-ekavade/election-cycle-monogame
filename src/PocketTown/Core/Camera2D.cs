@@ -10,6 +10,7 @@ public class Camera2D
 {
     public Vector2 Center;
 
+    // Rounding lives only here so sprites can draw at fractional positions without a second snap.
     public Matrix Transform => Matrix.CreateTranslation(
         -MathF.Round(Center.X - Constants.VirtualWidth / 2f),
         -MathF.Round(Center.Y - Constants.VirtualHeight / 2f),

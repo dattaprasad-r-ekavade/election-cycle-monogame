@@ -39,12 +39,33 @@ public static class DirectionExtensions
     }
 
     public static Direction Parse(string? value, Direction fallback = Direction.Down) =>
-        value?.ToLowerInvariant() switch
+        TryParse(value, out var parsed) ? parsed : fallback;
+
+    public static bool TryParse(string? value, out Direction direction)
+    {
+        switch (value?.Trim().ToLowerInvariant())
         {
-            "up" => Direction.Up,
-            "down" => Direction.Down,
-            "left" => Direction.Left,
-            "right" => Direction.Right,
-            _ => fallback,
-        };
+            case "up": direction = Direction.Up; return true;
+            case "down": direction = Direction.Down; return true;
+            case "left": direction = Direction.Left; return true;
+            case "right": direction = Direction.Right; return true;
+            case null:
+            case "":
+                direction = Direction.Down;
+                return false;
+            default:
+                direction = Direction.Down;
+                return false;
+        }
+    }
+
+    /// <summary>Parse a map JSON facing string, or throw with the map id and field name.</summary>
+    public static Direction ParseRequired(string? value, string mapId, string field)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Direction.Down;
+        if (TryParse(value, out var parsed))
+            return parsed;
+        throw new InvalidDataException($"Map '{mapId}' has invalid {field} '{value}'. Use up, down, left, or right.");
+    }
 }

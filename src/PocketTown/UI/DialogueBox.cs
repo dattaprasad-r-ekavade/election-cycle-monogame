@@ -40,10 +40,13 @@ public class DialogueBox
         _pageIndex = 0;
         _revealed = 0f;
 
+        _blink = 0f;
         int textWidth = Constants.VirtualWidth - Margin * 2 - Padding * 2;
         foreach (var paragraph in paragraphs)
         {
             var lines = _font.Wrap(paragraph, textWidth);
+            if (lines.Count == 0)
+                continue;
             for (int i = 0; i < lines.Count; i += LinesPerPage)
                 _pages.Add(lines.Skip(i).Take(LinesPerPage).ToList());
         }
@@ -53,6 +56,8 @@ public class DialogueBox
 
         IsOpen = true;
     }
+
+    public void Close() => IsOpen = false;
 
     private int PageLength => _pages[_pageIndex].Sum(l => l.Length);
     private bool PageFullyRevealed => _revealed >= PageLength;

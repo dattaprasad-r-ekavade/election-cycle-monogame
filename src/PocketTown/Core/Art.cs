@@ -24,10 +24,13 @@ public static class Art
     private static readonly Dictionary<TileKind, Texture2D[]> Tiles = new();
     private static readonly Dictionary<string, Texture2D> Characters = new();
 
-    public static Texture2D[] TileFrames(TileKind kind) => Tiles[kind];
+    public static Texture2D[] TileFrames(TileKind kind) =>
+        Tiles.TryGetValue(kind, out var frames) ? frames : Tiles[TileKind.Void];
 
     public static Texture2D CharacterSheet(string id) =>
         Characters.TryGetValue(id, out var sheet) ? sheet : Characters["villager"];
+
+    public static bool HasCharacter(string id) => Characters.ContainsKey(id);
 
     // --- Palette -------------------------------------------------------------
 
@@ -69,14 +72,26 @@ public static class Art
     {
         Pixel = Make(device, 1, 1, p => p.Px(0, 0, Color.White));
 
-        Tiles[TileKind.Grass] = new[] { Make(device, 16, 16, DrawGrass) };
-        Tiles[TileKind.TallGrass] = new[] { Make(device, 16, 16, DrawTallGrass) };
+        Tiles[TileKind.Grass] = new[]
+        {
+            Make(device, 16, 16, p => DrawGrass(p, 1234)),
+            Make(device, 16, 16, p => DrawGrass(p, 5678)),
+            Make(device, 16, 16, p => DrawGrass(p, 9012)),
+            Make(device, 16, 16, p => DrawGrass(p, 3456)),
+        };
+        Tiles[TileKind.TallGrass] = new[] { Make(device, 16, 16, p => DrawTallGrass(p, 1234)) };
         Tiles[TileKind.Flowers] = new[]
         {
             Make(device, 16, 16, p => DrawFlowers(p, 0)),
             Make(device, 16, 16, p => DrawFlowers(p, 1)),
         };
-        Tiles[TileKind.Path] = new[] { Make(device, 16, 16, DrawPath) };
+        Tiles[TileKind.Path] = new[]
+        {
+            Make(device, 16, 16, p => DrawPath(p, 77)),
+            Make(device, 16, 16, p => DrawPath(p, 88)),
+            Make(device, 16, 16, p => DrawPath(p, 99)),
+            Make(device, 16, 16, p => DrawPath(p, 111)),
+        };
         Tiles[TileKind.Water] = new[]
         {
             Make(device, 16, 16, p => DrawWater(p, 0)),
@@ -85,19 +100,19 @@ public static class Art
         Tiles[TileKind.Tree] = new[] { Make(device, 16, 32, DrawTree) };
         Tiles[TileKind.Fence] = new[] { Make(device, 16, 16, DrawFence) };
         Tiles[TileKind.Sign] = new[] { Make(device, 16, 16, DrawSign) };
-        Tiles[TileKind.HouseWall] = new[] { Make(device, 16, 16, DrawHouseWall) };
+        Tiles[TileKind.HouseWall] = new[] { Make(device, 16, 32, DrawHouseWall) };
         Tiles[TileKind.HouseRoof] = new[] { Make(device, 16, 16, DrawHouseRoof) };
-        Tiles[TileKind.HouseDoor] = new[] { Make(device, 16, 16, p => DrawHouseDoor(p, false)) };
-        Tiles[TileKind.HouseDoorLocked] = new[] { Make(device, 16, 16, p => DrawHouseDoor(p, true)) };
-        Tiles[TileKind.HouseWindow] = new[] { Make(device, 16, 16, DrawHouseWindow) };
+        Tiles[TileKind.HouseDoor] = new[] { Make(device, 16, 32, p => DrawHouseDoor(p, false)) };
+        Tiles[TileKind.HouseDoorLocked] = new[] { Make(device, 16, 32, p => DrawHouseDoor(p, true)) };
+        Tiles[TileKind.HouseWindow] = new[] { Make(device, 16, 32, DrawHouseWindow) };
         Tiles[TileKind.Floor] = new[] { Make(device, 16, 16, DrawFloor) };
         Tiles[TileKind.Rug] = new[] { Make(device, 16, 16, DrawRug) };
         Tiles[TileKind.InteriorWall] = new[] { Make(device, 16, 16, DrawInteriorWall) };
-        Tiles[TileKind.Bed] = new[] { Make(device, 16, 16, DrawBed) };
-        Tiles[TileKind.Bookshelf] = new[] { Make(device, 16, 16, DrawBookshelf) };
+        Tiles[TileKind.Bed] = new[] { Make(device, 16, 32, DrawBed) };
+        Tiles[TileKind.Bookshelf] = new[] { Make(device, 16, 32, DrawBookshelf) };
         Tiles[TileKind.Table] = new[] { Make(device, 16, 16, DrawTable) };
         Tiles[TileKind.Chair] = new[] { Make(device, 16, 16, DrawChair) };
-        Tiles[TileKind.Tv] = new[] { Make(device, 16, 16, DrawTv) };
+        Tiles[TileKind.Tv] = new[] { Make(device, 16, 32, DrawTv) };
         Tiles[TileKind.DoorMat] = new[] { Make(device, 16, 16, DrawDoorMat) };
         Tiles[TileKind.Void] = new[] { Make(device, 16, 16, p => p.Rect(0, 0, 16, 16, new Color(18, 18, 26))) };
 
@@ -105,6 +120,21 @@ public static class Art
 
         foreach (var (id, palette) in Palettes)
             Characters[id] = Make(device, CharWidth * 3, CharHeight * 3, p => DrawCharacterSheet(p, palette));
+    }
+
+    public static void Dispose()
+    {
+        Pixel?.Dispose();
+        TallGrassOverlay?.Dispose();
+        Pixel = null!;
+        TallGrassOverlay = null!;
+        foreach (var frames in Tiles.Values)
+            foreach (var tex in frames)
+                tex.Dispose();
+        Tiles.Clear();
+        foreach (var sheet in Characters.Values)
+            sheet.Dispose();
+        Characters.Clear();
     }
 
     private static Texture2D Make(GraphicsDevice device, int w, int h, Action<Painter> draw)
@@ -118,19 +148,19 @@ public static class Art
 
     // --- Tile painters -------------------------------------------------------
 
-    private static void DrawGrass(Painter p)
+    private static void DrawGrass(Painter p, int seed)
     {
         p.Rect(0, 0, 16, 16, GrassBase);
-        var rng = new Random(1234);
+        var rng = new Random(seed);
         for (int i = 0; i < 14; i++)
             p.Px(rng.Next(16), rng.Next(16), GrassDark);
         for (int i = 0; i < 8; i++)
             p.Px(rng.Next(16), rng.Next(16), GrassLight);
     }
 
-    private static void DrawTallGrass(Painter p)
+    private static void DrawTallGrass(Painter p, int seed)
     {
-        DrawGrass(p);
+        DrawGrass(p, seed);
         // Clumps of tall blades.
         foreach (int x in new[] { 1, 4, 7, 10, 13 })
         {
@@ -151,7 +181,7 @@ public static class Art
 
     private static void DrawFlowers(Painter p, int frame)
     {
-        DrawGrass(p);
+        DrawGrass(p, 2222 + frame);
         DrawFlower(p, 3, 3, frame);
         DrawFlower(p, 10, 9, 1 - frame);
     }
@@ -168,10 +198,10 @@ public static class Art
         p.Px(x + 1 + sway, y, center);
     }
 
-    private static void DrawPath(Painter p)
+    private static void DrawPath(Painter p, int seed)
     {
         p.Rect(0, 0, 16, 16, PathBase);
-        var rng = new Random(77);
+        var rng = new Random(seed);
         for (int i = 0; i < 12; i++)
             p.Px(rng.Next(16), rng.Next(16), PathDark);
     }
@@ -207,7 +237,7 @@ public static class Art
 
     private static void DrawFence(Painter p)
     {
-        DrawGrass(p);
+        DrawGrass(p, 4444);
         p.Rect(0, 6, 16, 2, WoodMid);
         p.Rect(0, 10, 16, 2, WoodMid);
         p.Rect(2, 4, 2, 9, WoodDark);
@@ -216,7 +246,7 @@ public static class Art
 
     private static void DrawSign(Painter p)
     {
-        DrawGrass(p);
+        DrawGrass(p, 5555);
         p.Rect(7, 8, 2, 6, WoodDark);
         p.Rect(2, 2, 12, 7, WoodMid);
         p.RectOutline(2, 2, 12, 7, WoodDark);
@@ -224,13 +254,27 @@ public static class Art
         p.HLine(4, 6, 6, WoodDark);
     }
 
+    private static void DrawHouseEaves(Painter p)
+    {
+        p.Rect(0, 0, 16, 16, RoofBase);
+        for (int y = 3; y < 16; y += 4)
+            p.HLine(0, y, 16, RoofDark);
+        p.Rect(0, 13, 16, 3, RoofDark);
+    }
+
+    private static void DrawHouseWallBody(Painter p, int oy)
+    {
+        p.Rect(0, oy, 16, 16, WallBase);
+        p.HLine(0, oy + 4, 16, WallLine);
+        p.HLine(0, oy + 9, 16, WallLine);
+        p.HLine(0, oy + 14, 16, WallLine);
+        p.HLine(0, oy + 15, 16, new Color(184, 156, 108));
+    }
+
     private static void DrawHouseWall(Painter p)
     {
-        p.Rect(0, 0, 16, 16, WallBase);
-        p.HLine(0, 4, 16, WallLine);
-        p.HLine(0, 9, 16, WallLine);
-        p.HLine(0, 14, 16, WallLine);
-        p.HLine(0, 15, 16, new Color(184, 156, 108));
+        DrawHouseEaves(p);
+        DrawHouseWallBody(p, 16);
     }
 
     private static void DrawHouseRoof(Painter p)
@@ -250,18 +294,18 @@ public static class Art
     {
         DrawHouseWall(p);
         var door = locked ? new Color(96, 62, 38) : new Color(122, 82, 48);
-        p.Rect(3, 2, 10, 14, door);
-        p.RectOutline(3, 2, 10, 14, new Color(74, 46, 26));
-        p.Px(11, 9, new Color(232, 200, 96));
+        p.Rect(3, 18, 10, 14, door);
+        p.RectOutline(3, 18, 10, 14, new Color(74, 46, 26));
+        p.Px(11, 25, new Color(232, 200, 96));
     }
 
     private static void DrawHouseWindow(Painter p)
     {
         DrawHouseWall(p);
-        p.Rect(3, 4, 10, 8, new Color(240, 240, 236));
-        p.Rect(4, 5, 8, 6, new Color(110, 156, 208));
-        p.VLine(7, 5, 6, new Color(240, 240, 236));
-        p.HLine(4, 7, 8, new Color(240, 240, 236));
+        p.Rect(3, 20, 10, 8, new Color(240, 240, 236));
+        p.Rect(4, 21, 8, 6, new Color(110, 156, 208));
+        p.VLine(7, 21, 6, new Color(240, 240, 236));
+        p.HLine(4, 23, 8, new Color(240, 240, 236));
     }
 
     private static void DrawFloor(Painter p)
@@ -296,28 +340,34 @@ public static class Art
 
     private static void DrawBed(Painter p)
     {
-        DrawFloor(p);
-        p.Rect(1, 0, 14, 16, new Color(120, 88, 56));
-        p.Rect(2, 1, 12, 14, new Color(232, 232, 240));
-        p.Rect(3, 2, 10, 3, new Color(248, 248, 252)); // pillow
-        p.Rect(2, 6, 12, 9, new Color(92, 116, 196));  // blanket
-        p.HLine(2, 7, 12, new Color(130, 152, 220));
+        p.Rect(0, 16, 16, 16, FloorBase);
+        p.HLine(0, 19, 16, FloorLine);
+        p.HLine(0, 23, 16, FloorLine);
+        p.HLine(0, 27, 16, FloorLine);
+        p.HLine(0, 31, 16, FloorLine);
+        p.Rect(2, 4, 12, 12, new Color(120, 88, 56)); // headboard
+        p.Rect(3, 6, 10, 8, new Color(92, 116, 196));
+        p.Rect(1, 16, 14, 16, new Color(120, 88, 56));
+        p.Rect(2, 17, 12, 14, new Color(232, 232, 240));
+        p.Rect(3, 18, 10, 3, new Color(248, 248, 252));
+        p.Rect(2, 22, 12, 9, new Color(92, 116, 196));
+        p.HLine(2, 23, 12, new Color(130, 152, 220));
     }
 
     private static void DrawBookshelf(Painter p)
     {
-        p.Rect(0, 0, 16, 16, new Color(134, 96, 60));
-        p.RectOutline(0, 0, 16, 16, WoodDark);
+        p.Rect(1, 2, 14, 30, new Color(134, 96, 60));
+        p.RectOutline(1, 2, 14, 30, WoodDark);
         var bookColors = new[]
         {
             new Color(198, 82, 82), new Color(82, 118, 198), new Color(220, 180, 92),
             new Color(104, 168, 112), new Color(160, 104, 180),
         };
-        foreach (int shelfY in new[] { 2, 9 })
+        foreach (int shelfY in new[] { 4, 12, 20 })
         {
-            p.HLine(1, shelfY + 5, 14, WoodDark);
-            for (int i = 0; i < 6; i++)
-                p.Rect(2 + i * 2, shelfY, 2, 5, bookColors[i % bookColors.Length]);
+            p.HLine(2, shelfY + 5, 12, WoodDark);
+            for (int i = 0; i < 5; i++)
+                p.Rect(3 + i * 2, shelfY, 2, 5, bookColors[i % bookColors.Length]);
         }
     }
 
@@ -341,11 +391,15 @@ public static class Art
 
     private static void DrawTv(Painter p)
     {
-        DrawFloor(p);
-        p.Rect(3, 12, 10, 3, WoodDark);              // stand
-        p.Rect(2, 2, 12, 10, new Color(58, 58, 66)); // body
-        p.Rect(4, 4, 8, 6, new Color(122, 198, 216)); // screen
-        p.Px(5, 5, new Color(220, 244, 248));
+        p.Rect(0, 16, 16, 16, FloorBase);
+        p.HLine(0, 19, 16, FloorLine);
+        p.HLine(0, 23, 16, FloorLine);
+        p.HLine(0, 27, 16, FloorLine);
+        p.HLine(0, 31, 16, FloorLine);
+        p.Rect(3, 28, 10, 3, WoodDark);
+        p.Rect(2, 8, 12, 20, new Color(58, 58, 66));
+        p.Rect(4, 10, 8, 14, new Color(122, 198, 216));
+        p.Px(5, 12, new Color(220, 244, 248));
     }
 
     private static void DrawDoorMat(Painter p)
@@ -370,7 +424,7 @@ public static class Art
     {
         bool stepping = frame != 1;
         int bob = stepping ? 1 : 0;
-        var shadow = Color.FromNonPremultiplied(20, 40, 20, 70);
+        var shadow = new Color(20, 40, 20, 255) * (70f / 255f);
         var skinDark = new Color(
             (byte)Math.Max(0, pal.Skin.R - 40), (byte)Math.Max(0, pal.Skin.G - 40), (byte)Math.Max(0, pal.Skin.B - 40));
 

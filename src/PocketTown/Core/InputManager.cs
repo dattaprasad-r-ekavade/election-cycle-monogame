@@ -13,7 +13,7 @@ public enum GameAction
     Confirm,
     /// <summary>Cancel / back (X, gamepad B).</summary>
     Cancel,
-    /// <summary>Hold to run (Left Shift, gamepad B).</summary>
+    /// <summary>Hold to run (Left Shift, gamepad shoulders).</summary>
     Run,
     /// <summary>Escape / gamepad Start.</summary>
     Menu,
@@ -32,6 +32,7 @@ public static class InputManager
     private static Direction? _lastDirection;
 
     private const float StickDeadZone = 0.5f;
+    private static readonly Direction[] Cardinals = { Direction.Up, Direction.Down, Direction.Left, Direction.Right };
 
     public static void Update()
     {
@@ -40,25 +41,21 @@ public static class InputManager
         _keys = Keyboard.GetState();
         _pad = GamePad.GetState(PlayerIndex.One);
 
-        // Track the most recently pressed direction so tapping a new arrow while
-        // holding another turns the player immediately.
-        foreach (var dir in new[] { Direction.Up, Direction.Down, Direction.Left, Direction.Right })
+        // Stick uses the dominant axis; keys/d-pad keep "most recently pressed wins".
+        if (StickDirection() is Direction stick)
         {
-            if (Pressed(ActionFor(dir)))
-                _lastDirection = dir;
+            _lastDirection = stick;
         }
-
-        if (_lastDirection is Direction last && !Down(ActionFor(last)))
+        else
         {
-            _lastDirection = null;
-            foreach (var dir in new[] { Direction.Up, Direction.Down, Direction.Left, Direction.Right })
+            foreach (var dir in Cardinals)
             {
-                if (Down(ActionFor(dir)))
-                {
+                if (Pressed(ActionFor(dir)))
                     _lastDirection = dir;
-                    break;
-                }
             }
+
+            if (_lastDirection is Direction last && !Down(ActionFor(last)))
+                _lastDirection = FirstHeldCardinal();
         }
     }
 
@@ -75,12 +72,30 @@ public static class InputManager
     {
         if (_lastDirection is Direction d && Down(ActionFor(d)))
             return d;
-        foreach (var dir in new[] { Direction.Up, Direction.Down, Direction.Left, Direction.Right })
+        return StickDirection() ?? FirstHeldCardinal();
+    }
+
+    private static Direction? FirstHeldCardinal()
+    {
+        foreach (var dir in Cardinals)
         {
             if (Down(ActionFor(dir)))
                 return dir;
         }
         return null;
+    }
+
+    /// <summary>Cardinal from the left stick, using the dominant axis so diagonals don't bias to Right.</summary>
+    private static Direction? StickDirection()
+    {
+        var stick = _pad.ThumbSticks.Left;
+        float ax = Math.Abs(stick.X);
+        float ay = Math.Abs(stick.Y);
+        if (ax < StickDeadZone && ay < StickDeadZone)
+            return null;
+        if (ax > ay)
+            return stick.X < 0 ? Direction.Left : Direction.Right;
+        return stick.Y > 0 ? Direction.Up : Direction.Down;
     }
 
     public static bool Down(GameAction action) => IsDown(_keys, _pad, action);
@@ -102,7 +117,10 @@ public static class InputManager
             || p.Buttons.A == ButtonState.Pressed,
         GameAction.Cancel => k.IsKeyDown(Keys.X) || p.Buttons.B == ButtonState.Pressed,
         GameAction.Run => k.IsKeyDown(Keys.LeftShift) || k.IsKeyDown(Keys.RightShift)
-            || p.Buttons.B == ButtonState.Pressed,
+            || p.Buttons.LeftShoulder == ButtonState.Pressed
+            || p.Buttons.RightShoulder == ButtonState.Pressed
+            || p.Triggers.Left > StickDeadZone
+            || p.Triggers.Right > StickDeadZone,
         GameAction.Menu => k.IsKeyDown(Keys.Escape) || p.Buttons.Start == ButtonState.Pressed,
         _ => false,
     };

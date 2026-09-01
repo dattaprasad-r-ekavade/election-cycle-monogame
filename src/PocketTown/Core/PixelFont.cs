@@ -7,7 +7,7 @@ namespace PocketTown.Core;
 /// A tiny 5x7 bitmap font generated entirely in code (no content pipeline required).
 /// Lowercase input is rendered as uppercase, Game Boy style.
 /// </summary>
-public sealed class PixelFont
+public sealed class PixelFont : IDisposable
 {
     public const int GlyphWidth = 5;
     public const int GlyphHeight = 7;
@@ -51,11 +51,27 @@ public sealed class PixelFont
         return new PixelFont(atlas, glyphs);
     }
 
-    public int MeasureWidth(string text, int scale = 1) =>
-        text.Length == 0 ? 0 : (text.Length * Advance - 1) * scale;
+    public void Dispose() => _atlas.Dispose();
+
+    public static string Normalize(string text) =>
+        text
+            .Replace('\u2018', '\'')
+            .Replace('\u2019', '\'')
+            .Replace('\u201C', '"')
+            .Replace('\u201D', '"')
+            .Replace('\u2013', '-')
+            .Replace('\u2014', '-')
+            .Replace("\u2026", "...");
+
+    public int MeasureWidth(string text, int scale = 1)
+    {
+        text = Normalize(text);
+        return text.Length == 0 ? 0 : (text.Length * Advance - 1) * scale;
+    }
 
     public void Draw(SpriteBatch sb, string text, Vector2 position, Color color, int scale = 1, float depth = 0f)
     {
+        text = Normalize(text);
         // Snap to whole pixels; point sampling at fractional positions garbles glyphs.
         float x = MathF.Round(position.X);
         float y = MathF.Round(position.Y);
@@ -75,26 +91,59 @@ public sealed class PixelFont
     public List<string> Wrap(string text, int maxWidth, int scale = 1)
     {
         var lines = new List<string>();
-        foreach (var hardLine in text.Split('\n'))
+        foreach (var hardLine in Normalize(text).Split('\n'))
         {
             string current = "";
-            foreach (var word in hardLine.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            var words = hardLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0)
+                continue;
+
+            foreach (var word in words)
             {
                 string candidate = current.Length == 0 ? word : current + " " + word;
                 if (MeasureWidth(candidate, scale) <= maxWidth)
                 {
                     current = candidate;
+                    continue;
                 }
-                else
+
+                if (current.Length > 0)
+                    lines.Add(current);
+
+                if (MeasureWidth(word, scale) <= maxWidth)
+                {
+                    current = word;
+                    continue;
+                }
+
+                current = "";
+                foreach (var piece in SplitToWidth(word, maxWidth, scale))
                 {
                     if (current.Length > 0)
                         lines.Add(current);
-                    current = word;
+                    current = piece;
                 }
             }
-            lines.Add(current);
+
+            if (current.Length > 0)
+                lines.Add(current);
         }
         return lines;
+    }
+
+    private List<string> SplitToWidth(string word, int maxWidth, int scale)
+    {
+        var pieces = new List<string>();
+        string remaining = word;
+        while (remaining.Length > 0)
+        {
+            int fit = 1;
+            while (fit < remaining.Length && MeasureWidth(remaining[..(fit + 1)], scale) <= maxWidth)
+                fit++;
+            pieces.Add(remaining[..fit]);
+            remaining = remaining[fit..];
+        }
+        return pieces;
     }
 
     private static Dictionary<char, string[]> GlyphPatterns() => new()
@@ -149,5 +198,9 @@ public sealed class PixelFont
         [')'] = new[] { ".#...", "..#..", "...#.", "...#.", "...#.", "..#..", ".#..." },
         ['/'] = new[] { "....#", "...#.", "...#.", "..#..", ".#...", ".#...", "#...." },
         ['>'] = new[] { "#....", ".#...", "..#..", "...#.", "..#..", ".#...", "#...." },
+        ['&'] = new[] { ".##..", "#..#.", ".#.#.", ".##..", "#.#.#", "#..#.", ".##.#" },
+        ['%'] = new[] { "##..#", "##.#.", "...#.", "..#..", ".#...", ".#.##", "#..##" },
+        ['$'] = new[] { "..#..", ".####", "#.#..", ".###.", "..#.#", "####.", "..#.." },
+        ['*'] = new[] { "..#..", "#.#.#", ".###.", "#####", ".###.", "#.#.#", "..#.." },
     };
 }

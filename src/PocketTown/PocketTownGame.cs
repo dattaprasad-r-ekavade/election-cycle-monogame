@@ -15,6 +15,7 @@ public class PocketTownGame : Game
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch = null!;
     private RenderTarget2D _renderTarget = null!;
+    private bool _resizing;
 
     public SceneManager Scenes { get; } = new();
     public PixelFont Font { get; private set; } = null!;
@@ -25,11 +26,13 @@ public class PocketTownGame : Game
         {
             PreferredBackBufferWidth = Constants.WindowWidth,
             PreferredBackBufferHeight = Constants.WindowHeight,
+            HardwareModeSwitch = false,
         };
         IsMouseVisible = true;
         Window.AllowUserResizing = true;
-        Window.Title = "Pocket Town";
+        Window.Title = Constants.GameTitle;
         Content.RootDirectory = "Content";
+        Window.ClientSizeChanged += OnClientSizeChanged;
     }
 
     protected override void LoadContent()
@@ -44,24 +47,37 @@ public class PocketTownGame : Game
         Scenes.Change(new TitleScene(this));
     }
 
+    protected override void UnloadContent()
+    {
+        Scenes.Change(null);
+        Font?.Dispose();
+        Art.Dispose();
+        AudioBank.Dispose();
+        _renderTarget?.Dispose();
+        _spriteBatch?.Dispose();
+        base.UnloadContent();
+    }
+
     protected override void Update(GameTime gameTime)
     {
         InputManager.Update();
-        Scenes.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
+        float dt = Math.Min((float)gameTime.ElapsedGameTime.TotalSeconds, Constants.MaxDeltaTime);
+        Scenes.Update(dt);
         base.Update(gameTime);
     }
 
     protected override void Draw(GameTime gameTime)
     {
-        // 1) Scene draws at the virtual resolution.
         GraphicsDevice.SetRenderTarget(_renderTarget);
         Scenes.Draw(_spriteBatch);
 
-        // 2) Upscale to the window with integer scaling + letterboxing.
         GraphicsDevice.SetRenderTarget(null);
         GraphicsDevice.Clear(Color.Black);
 
-        var bounds = GraphicsDevice.PresentationParameters.Bounds;
+        var bounds = GraphicsDevice.Viewport.Bounds;
+        if (bounds.Width <= 0 || bounds.Height <= 0)
+            return;
+
         int scale = Math.Max(1, Math.Min(bounds.Width / Constants.VirtualWidth, bounds.Height / Constants.VirtualHeight));
         int width = Constants.VirtualWidth * scale;
         int height = Constants.VirtualHeight * scale;
@@ -72,5 +88,22 @@ public class PocketTownGame : Game
         _spriteBatch.End();
 
         base.Draw(gameTime);
+    }
+
+    private void OnClientSizeChanged(object? sender, EventArgs e)
+    {
+        if (_resizing)
+            return;
+
+        int width = Math.Max(Constants.VirtualWidth, Window.ClientBounds.Width);
+        int height = Math.Max(Constants.VirtualHeight, Window.ClientBounds.Height);
+        if (width == _graphics.PreferredBackBufferWidth && height == _graphics.PreferredBackBufferHeight)
+            return;
+
+        _resizing = true;
+        _graphics.PreferredBackBufferWidth = width;
+        _graphics.PreferredBackBufferHeight = height;
+        _graphics.ApplyChanges();
+        _resizing = false;
     }
 }

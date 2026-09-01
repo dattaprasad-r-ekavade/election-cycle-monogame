@@ -13,13 +13,20 @@ public abstract class Scene
 
     /// <summary>Draw to the 320x180 virtual render target. SpriteBatch Begin/End is owned by the scene.</summary>
     public abstract void Draw(SpriteBatch spriteBatch);
+
+    /// <summary>Called when the scene is replaced. Unsubscribe events and drop per-scene state here.</summary>
+    public virtual void OnExit() { }
 }
 
 public class SceneManager
 {
     public Scene? Current { get; private set; }
 
-    public void Change(Scene scene) => Current = scene;
+    public void Change(Scene? scene)
+    {
+        Current?.OnExit();
+        Current = scene;
+    }
 
     public void Update(float dt) => Current?.Update(dt);
 

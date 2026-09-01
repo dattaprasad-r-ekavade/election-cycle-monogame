@@ -27,4 +27,12 @@ public static class Constants
 
     /// <summary>Duration of the fade used for map transitions, in seconds.</summary>
     public const float FadeDuration = 0.35f;
+
+    public const string GameTitle = "Election Cycle";
+
+    /// <summary>Map loaded after the title screen (wake-up-at-home, Pokemon-style).</summary>
+    public const string StartMapId = "home";
+
+    /// <summary>Delta-time ceiling so a hitch cannot skip a whole tile or warp.</summary>
+    public const float MaxDeltaTime = 1f / 20f;
 }

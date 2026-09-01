@@ -75,7 +75,9 @@ public static class TileCatalog
     /// Tall tiles are drawn as 16x32 sprites and y-sorted with entities,
     /// which is what produces the 2.5D depth effect (walk in front of / behind them).
     /// </summary>
-    public static bool IsTall(TileKind kind) => kind == TileKind.Tree;
+    public static bool IsTall(TileKind kind) => kind is
+        TileKind.Tree or TileKind.HouseWall or TileKind.HouseDoor or TileKind.HouseDoorLocked
+        or TileKind.HouseWindow or TileKind.Bed or TileKind.Bookshelf or TileKind.Tv;
 
     /// <summary>Tiles whose artwork animates (frame flip every half second).</summary>
     public static bool IsAnimated(TileKind kind) => kind is TileKind.Water or TileKind.Flowers;

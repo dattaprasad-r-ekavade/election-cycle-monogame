@@ -7,8 +7,8 @@ namespace PocketTown.World;
 
 /// <summary>
 /// A grid of tiles loaded from a JSON map file, with collision, warps, interactables
-/// and depth-sorted drawing. Flat tiles are drawn at depth ~0; tall tiles (trees) are
-/// drawn as 16x32 sprites y-sorted together with entities for the 2.5D effect.
+/// and depth-sorted drawing. Flat tiles are drawn at depth ~0; tall tiles (trees, house
+/// facades, furniture) are drawn as 16x32 sprites y-sorted with entities for 2.5D.
 /// </summary>
 public class TileMap
 {
@@ -47,11 +47,15 @@ public class TileMap
             for (int x = 0; x < Width; x++)
                 _tiles[x, y] = TileCatalog.FromChar(row[x]);
         }
+
+        Validate();
     }
+
+    public static string MapsDirectory => Path.Combine(AppContext.BaseDirectory, "Data", "Maps");
 
     public static TileMap Load(string id)
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "Data", "Maps", id + ".json");
+        string path = Path.Combine(MapsDirectory, id + ".json");
         if (!File.Exists(path))
             throw new FileNotFoundException($"Map file not found: {path}");
 
@@ -59,6 +63,52 @@ public class TileMap
         var data = JsonSerializer.Deserialize<MapData>(File.ReadAllText(path), options)
             ?? throw new InvalidDataException($"Map '{id}' could not be parsed.");
         return new TileMap(id, data);
+    }
+
+    private void Validate()
+    {
+        ValidatePoint("spawn", Data.Spawn.X, Data.Spawn.Y, mustBeWalkable: true);
+        DirectionExtensions.ParseRequired(Data.Spawn.Facing, Id, "spawn.facing");
+
+        var occupied = new HashSet<Point> { new(Data.Spawn.X, Data.Spawn.Y) };
+
+        for (int i = 0; i < Data.Npcs.Count; i++)
+        {
+            var npc = Data.Npcs[i];
+            ValidatePoint($"npcs[{i}] ({npc.Name})", npc.X, npc.Y, mustBeWalkable: true);
+            DirectionExtensions.ParseRequired(npc.Facing, Id, $"npcs[{i}].facing");
+            if (!Art.HasCharacter(npc.Sprite))
+                throw new InvalidDataException($"Map '{Id}' NPC '{npc.Name}' has unknown sprite '{npc.Sprite}'.");
+            var pt = new Point(npc.X, npc.Y);
+            if (!occupied.Add(pt))
+                throw new InvalidDataException($"Map '{Id}' NPC '{npc.Name}' overlaps another occupant at ({npc.X},{npc.Y}).");
+        }
+
+        for (int i = 0; i < Data.Warps.Count; i++)
+        {
+            var warp = Data.Warps[i];
+            ValidatePoint($"warps[{i}]", warp.X, warp.Y, mustBeWalkable: true);
+            DirectionExtensions.ParseRequired(warp.Facing, Id, $"warps[{i}].facing");
+            if (string.IsNullOrWhiteSpace(warp.ToMap))
+                throw new InvalidDataException($"Map '{Id}' warps[{i}] has an empty toMap.");
+            string dest = Path.Combine(MapsDirectory, warp.ToMap + ".json");
+            if (!File.Exists(dest))
+                throw new InvalidDataException($"Map '{Id}' warps[{i}] points at missing map '{warp.ToMap}'.");
+        }
+
+        for (int i = 0; i < Data.Interactables.Count; i++)
+        {
+            var item = Data.Interactables[i];
+            ValidatePoint($"interactables[{i}]", item.X, item.Y, mustBeWalkable: false);
+        }
+    }
+
+    private void ValidatePoint(string label, int x, int y, bool mustBeWalkable)
+    {
+        if (x < 0 || y < 0 || x >= Width || y >= Height)
+            throw new InvalidDataException($"Map '{Id}' {label} is out of bounds at ({x},{y}); size is {Width}x{Height}.");
+        if (mustBeWalkable && TileCatalog.IsSolid(_tiles[x, y]))
+            throw new InvalidDataException($"Map '{Id}' {label} sits on solid tile '{_tiles[x, y]}' at ({x},{y}).");
     }
 
     public TileKind GetTile(int x, int y) =>
@@ -92,6 +142,18 @@ public class TileMap
     public float DepthFor(float feetY) =>
         0.1f + 0.8f * MathHelper.Clamp(feetY / (PixelHeight + 64f), 0f, 1f);
 
+    private Texture2D PickFrame(TileKind kind, int x, int y)
+    {
+        var frames = Art.TileFrames(kind);
+        if (frames.Length == 0)
+            return Art.Pixel;
+        if (TileCatalog.IsAnimated(kind))
+            return frames[_animFrame % frames.Length];
+        if (frames.Length == 1)
+            return frames[0];
+        return frames[Math.Abs(HashCode.Combine(x, y)) % frames.Length];
+    }
+
     /// <summary>Draw inside a SpriteBatch begun with SpriteSortMode.FrontToBack.</summary>
     public void Draw(SpriteBatch sb)
     {
@@ -105,8 +167,9 @@ public class TileMap
 
                 if (TileCatalog.IsTall(kind))
                 {
-                    // Tall tiles stand on a grass base and get y-sorted with entities.
-                    sb.Draw(Art.TileFrames(TileKind.Grass)[0], pos, null, Color.White,
+                    var groundKind = Outdoor ? TileKind.Grass : TileKind.Floor;
+                    var ground = PickFrame(groundKind, x, y);
+                    sb.Draw(ground, pos, null, Color.White,
                         0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
                     var tex = Art.TileFrames(kind)[0];
                     float feetY = (y + 1) * ts;
@@ -115,8 +178,7 @@ public class TileMap
                     continue;
                 }
 
-                var frames = Art.TileFrames(kind);
-                var frame = frames[TileCatalog.IsAnimated(kind) ? _animFrame % frames.Length : 0];
+                var frame = PickFrame(kind, x, y);
                 sb.Draw(frame, pos, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
 
                 // Tall grass blades overlap whoever stands in them (drawn just above entity feet).
