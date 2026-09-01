@@ -1,6 +1,8 @@
 # Election Cycle
 
-**Election Cycle** — a 2.5D Pokemon-style political satire roguelike built with [MonoGame](https://monogame.net/) (DesktopGL). You have **7 days** to win a local election in a cozy pixel town. The engine still ships as a walkable skeleton (house, town, NPCs, dialogue) plus a stub of the full week: morning free-roam, a placeholder day's event, the WMAP-7 evening news, sleep that saves, and a moving poll.
+**Election Cycle** — a South Park season you can play. Each episode is a level. Built with [MonoGame](https://monogame.net/) (DesktopGL).
+
+Season 1 is 10 short satire episodes (YouTube) that are also 10 playable campaign weeks (itch.io, donation / PWYW). Same stations every time: TV cold open, register, canvass, interview, speech, debate, then a 3rd-party underdog wins. The engine still ships a walkable town plus a 7-day stub (poll, WMAP-7 news, save). See `SEASON-PLAN.md`.
 
 Everything (sprites, tiles, font, sound effects) is **generated procedurally at startup**, so the project builds and runs with zero asset files and no MonoGame content pipeline. Swap in real art later by editing one file.
 

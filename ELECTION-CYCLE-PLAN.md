@@ -1,11 +1,13 @@
 # Election Cycle — Full Design & Production Plan
 
-> A 2.5D Pokémon-style political satire roguelike. You are a candidate in a randomized
-> town, facing a randomized opponent, with **7 days** to win an election.
-> Built on the existing Pocket Town MonoGame framework.
+> A 2.5D Pokémon-style political satire game. Companion documents:
+> `SEASON-PLAN.md` (**product / seasons / itch then Steam** — wins on scope),
+> `Election Cycle Redux.md` (S.O.C.I.A.L. stats, scenario ideas),
+> `README.md` (engine).
 >
-> Companion documents: `Election Cycle Redux.md` (S.O.C.I.A.L. stat system, 10-scenario
-> story arc), `README.md` (engine/framework docs).
+> **Scope note:** Launch is Season 1 — 10 authored episodes = 10 playable levels
+> on itch (donation / PWYW), not a Steam-first infinite roguelike. Use this file
+> for systems (poll, ledger, days). Use `SEASON-PLAN.md` for what we actually ship.
 
 ---
 
